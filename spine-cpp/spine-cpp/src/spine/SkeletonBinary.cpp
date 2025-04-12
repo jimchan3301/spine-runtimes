@@ -125,6 +125,8 @@ SkeletonData *SkeletonBinary::readSkeletonData(const unsigned char *binary, cons
 		char errorMsg[255];
 		snprintf(errorMsg, 255, "Skeleton version %s does not match runtime version %s", skeletonData->_version.buffer(), SPINE_VERSION_STRING);
 		setError(errorMsg, "");
+		delete input;
+		delete skeletonData;
 		return NULL;
 	}
 
@@ -606,8 +608,8 @@ Attachment *SkeletonBinary::readAttachment(DataInput *input, Skin *skin, int slo
 				setError("Error reading attachment: ", name.buffer());
 				return NULL;
 			}
-			readVertices(input, box->getVertices(), box->getBones(), (flags & 16) != 0);
-			box->setWorldVerticesLength(box->getVertices().size());
+			int verticesLength = readVertices(input, box->getVertices(), box->getBones(), (flags & 16) != 0);
+			box->setWorldVerticesLength(verticesLength);
 			if (nonessential) {
 				readColor(input, box->getColor());
 			}

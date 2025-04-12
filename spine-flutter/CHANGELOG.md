@@ -1,3 +1,25 @@
+# 4.2.33
+- Merge fixes in spine-cpp(-lite)
+- Prepare for upcoming Dart/Flutter releases, see https://github.com/EsotericSoftware/spine-runtimes/pull/2690
+
+# 4.2.32
+- Fix spine-flutter spec checksum in `Podfile.lock`, keeping version control cleaner. See https://github.com/EsotericSoftware/spine-runtimes/pull/2609
+
+# 4.2.31
+- Fix bug in IKConstraint leading to NaNs.
+
+# 4.2.30
+- Switch to spine-cpp SkeletonRenderer
+
+# 4.2.29
+- Fix issue in pubspec.yaml related to C++ include paths.
+
+# 4.2.28
+- Fix incompatibility with Gradle 8.x. See https://github.com/EsotericSoftware/spine-runtimes/issues/2553
+
+# 4.2.27
+- Fixes clipping in case of colinear clipping edges.
+
 # 4.2.26
 - `Skeleton.getBounds()` takes clipping into consideration.
 

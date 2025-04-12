@@ -88,6 +88,7 @@
 - **Breaking**: Starting with Unreal Engine 5.3 imported `.skel`/`.json` and `.atlas` files in the same folder must NOT have a common prefix. E.g. `skeleton.json` and `skeleton.atlas` will not work. Make sure to rename at least one of the two files so there is no prefix collision, e.g. `skeleton-data.json` and `skeleton.atlas`.
 - Added compatibility with UE 5.3
 - Added more example maps
+- Added blueprint-callable methods `PhysicsTranslate()`, `PhysicsRotate()` and `ResetPhysicsConstraints()` (which will reset all physics constraints in the skeleton) to `SpineSkeletonComponent` and `SpineWidget`.
 
 ### Godot
 
@@ -113,6 +114,7 @@
 ## C#
 
 - **Additions**
+
   - Added [`TrackEntry.AlphaAttachmentThreshold`](http://esotericsoftware.com/spine-api-reference#TrackEntry-alphaAttachmentThreshold).
 
 - **Breaking changes**
@@ -121,7 +123,7 @@
 
 ### Unity
 
-- **Officially supported Unity versions are 2017.1-2022.1**.
+- **Officially supported Unity versions are 2017.1-2023.1**.
 
 - **Additions**
 
@@ -156,7 +158,13 @@
   - SkeletonGraphic: Added auto-detect functionality for parameters `Advanced` - `Tint Black`, `CanvasGroup Compatible` and `PMA Vertex Color`. If unsure which settings are correct, hit the `Detect` button next to each parameter, in top to bottom order, or the `Detect Settings` to detect all three. Also added automatic material assignment via a `Detect Material` button in the `Advanced` section and a `Detect` button next to the `Material` property at the top of the component Inspector, as well as next to the `Blend Mode Materials` section when using multiple canvas renderers with blend modes. The suitable material is selected based on these three settings, combined with texture settings (PMA or straight alpha texture settings). If you receive incorrect results, likely your texture settings are incorrectly setup for your PMA or Straight alpha texture export settings.
   - `SkeletonRenderTexture` example components now provide a `shaderPasses` parameter to customize which passes are rendered to the `RenderTexture`. It defaults to `-1` for all passes to keep the existing behaviour. You might want to set it to `0` to only render the first pass e.g. to avoid issues when using a URP shader at the original skeleton.
   - `SkeletonGraphicRenderTexture` example component now also received a `quadMaterial` property, defaulting to the newly added Material asset `RenderQuadGraphicMaterial` which applies proper premultiplied-alpha blending of the render texture. The `quadMaterial` member variable was moved from `SkeletonRenderTexture` to the common base class `SkeletonRenderTextureBase`.
-  - All Spine Outline shaders, including the URP outline shader, now provide an additional parameter `Width in Screen Space`. Enable it to keep the outline width constant in screen space instead of texture space. Requires more expensive computations, so enable only where necessary.  Defaults to `disabled` to maintain existing behaviour.
+  - All Spine Outline shaders, including the URP outline shader, now provide an additional parameter `Width in Screen Space`. Enable it to keep the outline width constant in screen space instead of texture space. Requires more expensive computations, so enable only where necessary. Defaults to `disabled` to maintain existing behaviour.
+  - Added support for BlendModeMaterials at runtime instantiation from files via an additional method `SkeletonDataAsset.SetupRuntimeBlendModeMaterials`. See example scene `Spine Examples/Other Examples/Instantiate from Script` for a usage example.
+  - SkeletonGraphic: You can now offset the skeleton mesh relative to the pivot via a newly added green circle handle. This allows you to e.g. frame only the face of a skeleton inside a masked frame. Previously offsetting the pivot downwards fails when `Layout Scale Mode` scales the mesh smaller and towards the pivot (e.g. the feet) and thus out of the frame. Now you can keep the pivot in the center of the `RectTransform` while offsetting only the mesh downwards, keeping the desired skeleton area (e.g. the face) centered while resizing. Moving the new larger green circle handle moves the mesh offset, while moving the blue pivot circle handle moves the pivot as usual.
+  - `Universal Render Pipeline/Spine/Skeleton` shader now performs proper alpha-testing when `Depth Write` is enabled, using the existing `Shadow alpha cutoff` parameter.
+  - `SkeletonRootMotion` components now provide a public `Initialize()` method which is automatically called when calling `skeletonAnimation.Initialize(true)` to update the necessary skeleton references. If a different root bone shall be used, be sure to set `skeletonRootMotion.rootMotionBoneName` before calling `skeletonAnimation.Initialize(true)`.
+  - Skeleton Mecanim: Added new `Mix Mode` `Match`. When selected, Spine animation weights are calculated to best match the provided Mecanim clip weights. This mix mode is recommended on any layer using blend tree nodes.
+  - URP Shaders: Added `ZWrite` variant of outline shader `Universal Render Pipeline/Spine/Outline/Skeleton-OutlineOnly ZWrite`. Suitable for e.g. depth of field (DoF) effect where writing to the depth buffer is required. Note that for DoF effect, `Render Queue` needs to be set to `Alpha Test`.
 
 - **Breaking changes**
 
@@ -168,6 +176,10 @@
   - SkeletonGraphic: The parameter `SkeletonGraphic.MeshGenerator.settings.canvasGroupTintBlack` was changed to `canvasGroupCompatible` to help with auto-detecting correct Vertex Data and Material settings. Set the parameter to true if the SkeletonGraphic component is located below a `CanvasGroup` component. The parameter value is automatically migrated from `canvasGroupTintBlack`.
   - Inspector: String attribute `SpineSkin()` now allows to include `<None>` in the list of parameters. Previously the `includeNone=true` parameter of the `SpineSkin()` attribute defaulted to `true` but was ignored. Now it defaults to `false` and has an effect on the list. Only the Inspector GUI is affected by this behaviour change.
   - `SkeletonGraphicRenderTexture` example component: `protected RawImage quadRawImage` was changed to `protected SkeletonSubmeshGraphic quadMaskableGraphic` for a bugfix. This is only relevant for subclasses of `SkeletonGraphicRenderTexture` or when querying the `RawImage` component via e.g. `skeletonGraphicRenderTexture.quad.GetComponent<RawImage>()`.
+  - Fixed a bug where when Linear color space is used and `PMA vertex colors` enabled, additive slots add a too dark (too transparent) color value. If you want the old incorrect behaviour (darker additive slots) or are not using Linear but Gamma color space, you can comment-out the define `LINEAR_COLOR_SPACE_FIX_ADDITIVE_ALPHA` in `MeshGenerator.cs` to deactivate the fix or just to skip unnecessary instructions.
+  - Fixed SkeletonRootMotion components ignoring parent bone scale when set by transform constraints. Using applied scale of parent bone now. If you need the old behaviour, comment out the line `#define USE_APPLIED_PARENT_SCALE` in SkeletonRootMotionBase.cs.
+  - Fixed SkeletonUtility callback update order when used with SkeletonRootMotion components so that the position when following a bone is updated after SkeletonRootMotion clears root-bone position. The order of SkeletonUtilityBone callbacks is changed to be later to achieve this. This is a breaking change in the unlikely case that you are using SkeletonRootMotion together with SkeletonUtility and subscribed to `UpdateLocal`, `UpdateWorld` or `UpdateComplete` yourself and relied on a certain callback order. One solution is to then resubscribe your own callback events accordingly by calling
+  `.UpdateLocal -= Callback; .UpdateLocal += Callback;`.
 
 - **Changes of default values**
 
@@ -176,6 +188,7 @@
 - **Restructuring (Non-Breaking)**
 
 ### XNA/MonoGame
+
 - **Additions**
   - Apply external movement to physics: If you are not directly modifying `Skeleton.X` or `Skeleton.Y`, you can apply external game object movement to skeleton physics as follows:
     Add a `Vector2 lastPosition;` member variable to your class interacting with the skeleton. Then call e.g. the following code each frame:
@@ -254,6 +267,10 @@
 
 ### Canvas backend
 
+### CanvasKit backend
+
+- Added spine-canvaskit runtime. See https://esotericsoftware.com/spine-canvaskit
+
 ### Three.js backend
 
 - Added physics support
@@ -263,6 +280,8 @@
 - Added physics support
 - Added `scale` field to configuration which defines the scale to load the skeleton at
 - Added `updateWorldTransform` field to configuration which expects a function that updates the skeleton. Defaults to player.skeleton.updateWorldTransform(spine.Physics.update)
+- Added `skeleton` to `SpinePlayerConfig` to specify the URL of the skeleton .json or .skel file. Deprecated `jsonURL` and `binaryURL`. The old fields can still be used, but will be removed in Spine 4.3
+- Added `atlas` to `SpinePlayerConfig` to specify the URL of the .atlas file. Deprecated `atlasURL`. The old field can still be used, but will be removed in Spine 4.3.
 
 ### Pixi
 
@@ -326,6 +345,7 @@
   - `VertexEffect` has been removed.
 
 ### Cocos2d-x
+- Renamed `SkeletonRenderer` to `SkeletonRendererCocos2dX` to avoid name clash with spine-cpp class.
 
 ### SFML
 
@@ -410,6 +430,7 @@
 
   - Made `SkeletonGraphic.unscaledTime` parameter protected, use the new property `UnscaledTime` instead.
   - `SkeletonGraphic` `OnRebuild` callback delegate is now issued after the skeleton has been initialized, before the `AnimationState` component is initialized. This makes behaviour consistent with `SkeletonAnimation` and `SkeletonMecanim` component behaviour. Use the new callback `OnAnimationRebuild` if you want to receive a callback after the `SkeletonGraphic` `AnimationState` has been initialized.
+  - Changed name of prefab skeleton meshes stored at prefabs from `Skeleton Prefab Mesh "name"` to `Skeleton Prefab Mesh [name]` to avoid issues with quotes in mesh asset names (see [this issue](https://github.com/EsotericSoftware/spine-runtimes/issues/2572)). Likely this change poses no problems at all, however if you are parsing the prefab's mesh name for whatever reason, be sure to adjust the pattern accordingly.
 
 - **Changes of default values**
 

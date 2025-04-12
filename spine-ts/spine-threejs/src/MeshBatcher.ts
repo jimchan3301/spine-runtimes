@@ -29,7 +29,7 @@
 
 import { SkeletonMeshMaterial, SkeletonMeshMaterialParametersCustomizer } from "./SkeletonMesh.js";
 import * as THREE from "three"
-import { ThreeJsTexture } from "./ThreeJsTexture.js";
+import { ThreeJsTexture, ThreeBlendOptions } from "./ThreeJsTexture.js";
 import { BlendMode } from "@esotericsoftware/spine-core";
 
 export class MeshBatcher extends THREE.Mesh {
@@ -41,7 +41,7 @@ export class MeshBatcher extends THREE.Mesh {
 	private indicesLength = 0;
 	private materialGroups: [number, number, number][] = [];
 
-	constructor(maxVertices: number = 10920, private materialCustomizer: SkeletonMeshMaterialParametersCustomizer = (parameters) => { }) {
+	constructor (maxVertices: number = 10920, private materialCustomizer: SkeletonMeshMaterialParametersCustomizer = (parameters) => { }) {
 		super();
 		if (maxVertices > 10920) throw new Error("Can't have more than 10920 triangles per batch: " + maxVertices);
 		let vertices = this.vertices = new Float32Array(maxVertices * MeshBatcher.VERTEX_SIZE);
@@ -60,7 +60,7 @@ export class MeshBatcher extends THREE.Mesh {
 		this.material = [new SkeletonMeshMaterial(materialCustomizer)];
 	}
 
-	dispose() {
+	dispose () {
 		this.geometry.dispose();
 		if (this.material instanceof THREE.Material)
 			this.material.dispose();
@@ -73,7 +73,7 @@ export class MeshBatcher extends THREE.Mesh {
 		}
 	}
 
-	clear() {
+	clear () {
 		let geo = (<THREE.BufferGeometry>this.geometry);
 		geo.drawRange.start = 0;
 		geo.drawRange.count = 0;
@@ -93,18 +93,18 @@ export class MeshBatcher extends THREE.Mesh {
 		return this;
 	}
 
-	begin() {
+	begin () {
 		this.verticesLength = 0;
 		this.indicesLength = 0;
 	}
 
-	canBatch(numVertices: number, numIndices: number) {
+	canBatch (numVertices: number, numIndices: number) {
 		if (this.indicesLength + numIndices >= this.indices.byteLength / 2) return false;
 		if (this.verticesLength / MeshBatcher.VERTEX_SIZE + numVertices >= (this.vertices.byteLength / 4) / MeshBatcher.VERTEX_SIZE) return false;
 		return true;
 	}
 
-	batch(vertices: ArrayLike<number>, verticesLength: number, indices: ArrayLike<number>, indicesLength: number, z: number = 0) {
+	batch (vertices: ArrayLike<number>, verticesLength: number, indices: ArrayLike<number>, indicesLength: number, z: number = 0) {
 		let indexStart = this.verticesLength / MeshBatcher.VERTEX_SIZE;
 		let vertexBuffer = this.vertices;
 		let i = this.verticesLength;
@@ -128,24 +128,22 @@ export class MeshBatcher extends THREE.Mesh {
 		this.indicesLength += indicesLength;
 	}
 
-	end() {
+	end () {
 		this.vertexBuffer.needsUpdate = this.verticesLength > 0;
-		// this.vertexBuffer.updateRange.offset = 0;
-		// this.vertexBuffer.updateRange.count = this.verticesLength;
-		this.vertexBuffer.addUpdateRange(0, this.verticesLength);
+		this.vertexBuffer.updateRange.offset = 0;
+		this.vertexBuffer.updateRange.count = this.verticesLength;
 		let geo = (<THREE.BufferGeometry>this.geometry);
 		this.closeMaterialGroups();
 		let index = geo.getIndex();
 		if (!index) throw new Error("BufferAttribute must not be null.");
 		index.needsUpdate = this.indicesLength > 0;
-		// index.updateRange.offset = 0;
-		// index.updateRange.count = this.indicesLength;
-		index.addUpdateRange(0, this.indicesLength);
+		index.updateRange.offset = 0;
+		index.updateRange.count = this.indicesLength;
 		geo.drawRange.start = 0;
 		geo.drawRange.count = this.indicesLength;
 	}
 
-	addMaterialGroup(indicesLength: number, materialGroup: number) {
+	addMaterialGroup (indicesLength: number, materialGroup: number) {
 		const currentGroup = this.materialGroups[this.materialGroups.length - 1];
 
 		if (currentGroup === undefined || currentGroup[2] !== materialGroup) {
@@ -155,7 +153,7 @@ export class MeshBatcher extends THREE.Mesh {
 		}
 	}
 
-	private closeMaterialGroups() {
+	private closeMaterialGroups () {
 		const geometry = this.geometry as THREE.BufferGeometry;
 		for (let i = 0; i < this.materialGroups.length; i++) {
 			const [startIndex, count, materialGroup] = this.materialGroups[i];
@@ -164,8 +162,8 @@ export class MeshBatcher extends THREE.Mesh {
 		}
 	}
 
-	findMaterialGroup(slotTexture: THREE.Texture, slotBlendMode: BlendMode) {
-		const blending = ThreeJsTexture.toThreeJsBlending(slotBlendMode);
+	findMaterialGroup (slotTexture: THREE.Texture, slotBlendMode: BlendMode) {
+		const blendingObject = ThreeJsTexture.toThreeJsBlending(slotBlendMode);
 		let group = -1;
 
 		if (Array.isArray(this.material)) {
@@ -173,17 +171,23 @@ export class MeshBatcher extends THREE.Mesh {
 				const meshMaterial = this.material[i] as SkeletonMeshMaterial;
 
 				if (!meshMaterial.uniforms.map.value) {
-					updateMeshMaterial(meshMaterial, slotTexture, blending);
+					updateMeshMaterial(meshMaterial, slotTexture, blendingObject);
 					return i;
 				}
 
-				if (meshMaterial.uniforms.map.value === slotTexture && meshMaterial.blending === blending) {
+				if (meshMaterial.uniforms.map.value === slotTexture
+					&& blendingObject.blending === meshMaterial.blending
+					&& (blendingObject.blendSrc === undefined || blendingObject.blendSrc === meshMaterial.blendSrc)
+					&& (blendingObject.blendDst === undefined || blendingObject.blendDst === meshMaterial.blendDst)
+					&& (blendingObject.blendSrcAlpha === undefined || blendingObject.blendSrcAlpha === meshMaterial.blendSrcAlpha)
+					&& (blendingObject.blendDstAlpha === undefined || blendingObject.blendDstAlpha === meshMaterial.blendDstAlpha)
+				) {
 					return i;
 				}
 			}
 
 			const meshMaterial = new SkeletonMeshMaterial(this.materialCustomizer);
-			updateMeshMaterial(meshMaterial, slotTexture, blending);
+			updateMeshMaterial(meshMaterial, slotTexture, blendingObject);
 			this.material.push(meshMaterial);
 			group = this.material.length - 1;
 		} else {
@@ -194,10 +198,8 @@ export class MeshBatcher extends THREE.Mesh {
 	}
 }
 
-function updateMeshMaterial(meshMaterial: SkeletonMeshMaterial, slotTexture: THREE.Texture, blending: THREE.Blending) {
+function updateMeshMaterial (meshMaterial: SkeletonMeshMaterial, slotTexture: THREE.Texture, blending: ThreeBlendOptions) {
 	meshMaterial.uniforms.map.value = slotTexture;
-	meshMaterial.blending = blending;
-	meshMaterial.blendDst = blending === THREE.CustomBlending ? THREE.OneMinusSrcColorFactor : THREE.OneMinusSrcAlphaFactor;
-	meshMaterial.blendSrc = blending === THREE.CustomBlending ? THREE.OneFactor : THREE.SrcAlphaFactor;
+	Object.assign(meshMaterial, blending);
 	meshMaterial.needsUpdate = true;
 }

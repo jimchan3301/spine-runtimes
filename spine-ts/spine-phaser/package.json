@@ -1,6 +1,6 @@
 {
   "name": "@esotericsoftware/spine-phaser",
-  "version": "4.2.43",
+  "version": "4.2.66",
   "description": "The official Spine Runtimes for the Phaser.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -34,5 +34,8 @@
     "@esotericsoftware/spine-core": "*",
     "@esotericsoftware/spine-webgl": "*",
     "@esotericsoftware/spine-canvas": "*"
+  },
+  "peerDependencies": {
+    "phaser": "latest"
   }
 }

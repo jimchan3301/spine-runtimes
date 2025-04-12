@@ -6,16 +6,22 @@ up into multiple modules:
 1. `spine-core/`, the core classes to load and process Spine skeletons.
 1. `spine-webgl/`, a self-contained WebGL backend, built on the core classes.
 1. `spine-canvas/`, a self-contained Canvas backend, built on the core classes.
-1. `spine-threejs/`, a self-contained THREE.JS backend, built on the core classes.
+1. `spine-canvaskit/`, a self-contained [CanvasKit](https://skia.org/docs/user/modules/canvaskit/) backend, built on the core classes for CanvasKit, supporting both NodeJS for headless rendering, and browsers.
+1. `spine-threejs/`, a self-contained [THREE.JS](https://threejs.org/) backend, built on the core classes.
 1. `spine-player/`, a self-contained player to easily display Spine animations on your website, built on the core classes and WebGL backend.
-1. `spine-phaser/`, a Phaser backend, built on the core classes.
-1. `spine-pixi/`, a Pixi backend, built on the core classes.
+1. `spine-phaser/`, a [Phaser](https://phaser.io/) backend, built on the core classes.
+1. `spine-pixi-v7/`, a [PixiJS v7](https://pixijs.com/) backend, built on the core classes.
+1. `spine-pixi-v8/`, a [PixiJS v8](https://pixijs.com/) backend, built on the core classes.
 
 In most cases, the `spine-player` module is best suited for your needs. Please refer to the [Spine Web Player documentation](https://esotericsoftware.com/spine-player) for more information.
 
 For documentation of the core API in `spine-core`, please refer to our [Spine Runtimes Guide](http://esotericsoftware.com/spine-runtimes-guide).
 
-For documentation of spine-phaser, please refer to our [spine-phaser Guide](https://esotericsoftware.com/spine-phaser).
+For documentation of `spine-phaser`, please refer to our [spine-phaser Guide](https://esotericsoftware.com/spine-phaser).
+
+For documentation of `spine-pixi-v7` and `spine-pixi-v8`, please refer to our [spine-pixi Guide](https://esotericsoftware.com/spine-pixi).
+
+For documentation of `spine-canvaskit`, please refer to our [spine-canvaskit Guide](https://esotericsoftware.com/spine-canvaskit).
 
 For module specific APIs in `spine-canvas`, `spine-webgl`, and `spine-threejs`, please refer to the [Examples](#examples) in the respecitve `spine-<modulename>/example` folder. For `spine-webgl` specifically, we have provided additional [demos](spine-webgl/demos), which you can also [view online](http://esotericsoftware.com/spine-demos).
 
@@ -33,9 +39,11 @@ For the official legal terms governing the Spine Runtimes, please read the [Spin
 
 spine-ts works with data exported from Spine 4.2.xx.
 
-The spine-ts WebGL and Player backends support all Spine features.
+spine-ts Canvas does not support mesh attachments, clipping attachments, or two-color tinting. Only the alpha channel from tint colors is applied. Experimental support for mesh attachments can be enabled by setting `spine.SkeletonRenderer.useTriangleRendering` to true. Note that this experimental mesh rendering is slow and render with artifacts on some browsers.
 
-spine-ts Canvas does not support mesh attachments, clipping attachments, or color tinting. Only the alpha channel from tint colors is applied. Experimental support for mesh attachments can be enabled by setting `spine.SkeletonRenderer.useTriangleRendering` to true. Note that this experimental mesh rendering is slow and render with artifacts on some browsers.
+spine-canvaskit supports all Spine features except two-color tinting.
+
+The spine-webgl and spine-player support all Spine features.
 
 spine-ts THREE.JS does not support two color tinting. The THREE.JS backend provides `SkeletonMesh.zOffset` to avoid z-fighting. Adjust to your near/far plane settings.
 
@@ -48,27 +56,33 @@ All spine-ts modules are published to [npm](http://npmjs.com) for consumption vi
 You can include a module in your project via a `<script>` tag from the [unpkg](https://unpkg.com/) CDN, specifying the version as part of the URL. In the examples below, the version is `4.0.*`, which fetches the latest patch release, and which will work with all exports from Spine Editor version `4.0.x`.
 
 ```
-// spine-ts Core
+// spine-core
 <script src="https://unpkg.com/@esotericsoftware/spine-core@4.2.*/dist/iife/spine-core.js"></script>
 
-// spine-ts Canvas
+// spine-canvas
 <script src="https://unpkg.com/@esotericsoftware/spine-canvas@4.2.*/dist/iife/spine-canvas.js"></script>
 
-// spine-ts WebGL
+// spine-canvaskit
+<script src="https://unpkg.com/@esotericsoftware/spine-canvas@4.2.*/dist/iife/spine-canvaskit.js"></script>
+
+// spine-webgl
 <script src="https://unpkg.com/@esotericsoftware/spine-webgl@4.2.*/dist/iife/spine-webgl.js"></script>
 
-// spine-ts Player, which requires a spine-player.css as well
+// spine-player, which requires a spine-player.css as well
 <script src="https://unpkg.com/@esotericsoftware/spine-player@4.2.*/dist/iife/spine-player.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/@esotericsoftware/spine-player@4.0.*/dist/spine-player.css">
 
-// spine-ts ThreeJS
+// spine-threejs
 <script src="https://unpkg.com/@esotericsoftware/spine-threejs@4.2.*/dist/iife/spine-threejs.js"></script>
 
 // spine-phaser
 <script src="https://unpkg.com/@esotericsoftware/spine-phaser@4.2.*/dist/iife/spine-phaser.js"></script>
 
 // spine-pixi
-<script src="https://unpkg.com/@esotericsoftware/spine-pixi@4.2.*/dist/iife/spine-pixi.js"></script>
+<script src="https://unpkg.com/@esotericsoftware/spine-pixi-v7@4.2.*/dist/iife/spine-pixi-v7.js"></script>
+
+// spine-pixi-v8
+<script src="https://unpkg.com/@esotericsoftware/spine-pixi-v8@4.2.*/dist/iife/spine-pixi-v8.js"></script>
 ```
 
 We also provide `js.map` source maps. They will be automatically fetched from unpkg when debugging code of a spine-module in Chrome, Firefox, or Safari, mapping the JavaScript code back to its original TypeScript sources.
@@ -82,11 +96,13 @@ If your project dependencies are managed through NPM or Yarn, you can add spine-
 ```
 npm install @esotericsoftware/spine-core
 npm install @esotericsoftware/spine-canvas
+npm install @esotericsoftware/spine-canvaskit
 npm install @esotericsoftware/spine-webgl
 npm install @esotericsoftware/spine-player
 npm install @esotericsoftware/spine-threejs
 npm install @esotericsoftware/spine-phaser
-npm install @esotericsoftware/spine-pixi
+npm install @esotericsoftware/spine-pixi-v7
+npm install @esotericsoftware/spine-pixi-v8
 ```
 
 spine-ts modules are provided in the [ECMAScript format](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules), which can be consumed natively by all modern browsers, or bundled by tools like [webpack](https://webpack.js.org/), [Babel](https://babeljs.io/), [Parcel](https://parceljs.org/), or [esbuild](https://esbuild.github.io/). You can import functions and classes from a spine-ts module in your JavaScript or TypeScript code using the `import` syntax to get access to all exported constants, functions, and classes of a module:

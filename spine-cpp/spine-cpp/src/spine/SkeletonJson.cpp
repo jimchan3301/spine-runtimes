@@ -156,6 +156,7 @@ SkeletonData *SkeletonJson::readSkeletonData(const char *json) {
 		if (!skeletonData->_version.startsWith(SPINE_VERSION_STRING)) {
 			char errorMsg[255];
 			snprintf(errorMsg, 255, "Skeleton version %s does not match runtime version %s", skeletonData->_version.buffer(), SPINE_VERSION_STRING);
+			delete skeletonData;
 			setError(NULL, errorMsg, "");
 			return NULL;
 		}
@@ -1160,7 +1161,7 @@ Animation *SkeletonJson::readAnimation(Json *root, SkeletonData *skeletonData) {
 				keyMap = timelineMap->_child;
 				for (frame = 0;; frame++) {
 					float time = Json::getFloat(keyMap, "time", 0);
-					const char *value = Json::getString(keyMap, "value", "normal");
+					const char *value = Json::getString(keyMap, "inherit", "normal");
 					Inherit inherit = Inherit_Normal;
 					if (strcmp(value, "normal") == 0) inherit = Inherit_Normal;
 					else if (strcmp(value, "onlyTranslation") == 0)
